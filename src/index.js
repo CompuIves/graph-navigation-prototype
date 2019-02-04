@@ -1,6 +1,6 @@
 import { mockData } from "./mockData";
 
-import { scaleTime, scaleLinear, select, line } from "d3";
+import { scaleTime, scaleLinear, select, line, event } from "d3";
 import { extent, max } from "d3-array";
 import { brushX, brushSelection } from "d3-brush";
 import { zipWith, debounce } from "lodash";
@@ -9,6 +9,18 @@ import { zipWith, debounce } from "lodash";
 const height = 500;
 const width = 600;
 const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+
+const LOG = (msg) => console.log(msg);
+
+// Dimensional Bounds
+const xMin = margin.left;
+const xMax = width - margin.right;
+const xRange = [xMin, xMax];
+
+const yMax = margin.top;
+const yMin = height - margin.bottom;
+const yRange = [yMin, yMax]; // y Axis is upside down
+
 const DATA = mockData.map(series => {
   return {
     ...series,
@@ -34,12 +46,12 @@ const drawChart = (target, dataset) => {
   // Scaling functions
   const xScale = scaleTime()
     .domain(xDomain)
-    .range([margin.left, width - margin.right]);
+    .range(xRange);
 
   const yScale = scaleLinear()
     .domain(yDomain)
     .nice()
-    .range([height - margin.bottom, margin.top]);
+    .range(yRange);
 
   // DOM MANIPULATION TIME
   const svg = target
@@ -61,7 +73,6 @@ const drawChart = (target, dataset) => {
     .attr("stroke-width", 1.5)
     .attr("stroke-linejoin", "round")
     .attr("stroke-linecap", "round");
-
   const lines = lineContainer
     .selectAll(".lineSeries") // Don't grab axis by accident
     .data(dataset)
@@ -70,36 +81,40 @@ const drawChart = (target, dataset) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
-  // INTERACTIONS
+  // Add some axes
 
-  const brushed = function () { // non-arrow function to access context
-    console.log("Brushing, we are");
+  // INTERACTIONS
+  const brushed = function () { // non-arrow function so that "this" will work
+    console.log({event});
+    console.log("Started x brush");
     const selection = brushSelection(this);
 
-    // Dangerous.. mutating state
-    xScale.domain(selection.map(xScale.invert, xScale));
+    // No reset for now. Beware an extra event may be firing every time.
+    if (selection === null) return;
 
-    // Redraw the different series..
+    // Careful- this mutates xScale inplace
+    xScale.domain(selection.map(xScale.invert, xScale));
+    // Redraw, note the hidden state of xScale implicitly passed in
     lines
       .attr("d", lineGenerator);
 
-    // Change the x axis domain
-    console.log(selection);
-  // Let's put the X axis below the previous graph so that it doesn't
-};
+    // Remove the brush after zooming
+    xBrushGroup.call(xBrush.move, null);
+  };
 
-  const slowBrushed = debounce(brushed, 300); // wait 800 ms
-
-  // Add an x-brush
+  // Add a brush for the X-axis
   const xBrush = brushX()
-    .extent([[0, 0], [width, height]])
-    .on("brush.end", slowBrushed);
+    .extent([[xMin, yMax], [xMax, yMin]]) // Y is flipped because of coordinate system
+    // Alternately: brush, start,
+    .on("end", brushed)
 
   const xBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(xBrush)
-    // .call(xBrush.move, xScale.range())
+
+  // Put the X axis below the previous graph so that it doesn't collide with the brush
+  // Important because we want to pan with it
 };
 
 // Event Handlers
