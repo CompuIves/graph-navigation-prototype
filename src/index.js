@@ -5,6 +5,7 @@ import { scaleTime, scaleLinear, select, line, event } from "d3";
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
 import { brushX, brushY, brushSelection } from "d3-brush";
+import { zoom } from "d3-zoom";
 
 import { drag } from "d3-drag";
 
@@ -72,7 +73,7 @@ const drawChart = (target, dataset) => {
   const yDomain = [0, max(data, d => d.y)];
 
   // Scaling functions
-  const xScale = scaleTime()
+  let xScale = scaleTime()
     .domain(xDomain)
     .range(xRange);
 
@@ -88,13 +89,24 @@ const drawChart = (target, dataset) => {
     .attr("width", width);
 
   // Axes
-  const xAxis = g => g
+  // const xZoom = ;
+  const onXDragMove = function() {
+    console.log("dragged");
+    xScale = event.transform.rescaleX(xScale);
+    xAxisGroup.call(xAxis);
+    lines.attr("d", lineGenerator);
+  };
+
+  const xAxis = g => g // TODO: where should this translate live?
     .attr("transform", `translate(0,${yMin})`)
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
     // Add dragging behavior
-    .call(drag().on('drag', onXDragMove));
+    // .call(drag().on('drag', onXDragMove));
+    .call(zoom()
+      .scaleExtent([1, 1])
+      .on("zoom", onXDragMove));
 
   const xAxisGroup = svg.append('g')
     .attr('class', 'x--axis')
@@ -180,16 +192,6 @@ const drawChart = (target, dataset) => {
     yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming
   };
 
-  const onXDragMove = function () {
-    // Move the axis
-    LOG(event);
-    const { dx } = event;
-    xAxisGroup
-      .attr('transform', `translate(${dx},0)`);
-    // Move the data
-    LOG("MOVING!");
-  }
-
   // Add a brush for the X-axis
   const xBrush = brushX()
     .extent([[xMin, yMax], [xMax, yMin]]) // Avoid spilling area into the y axis zone
@@ -236,8 +238,6 @@ const drawChart = (target, dataset) => {
     yAxisGroup.call(yAxis);
   });
 };
-
-
 
 // Event Handlers
 drawChart(select("#app"), D3_DATA);
