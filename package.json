@@ -5,7 +5,8 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^5.8.0",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "rxjs": "^6.4.0"
   },
   "scripts": {
     "dev": "parcel index.html",

@@ -10,12 +10,18 @@ import { drag } from "d3-drag";
 
 import { zipWith } from "lodash";
 
+// Doubleclicking
+import { fromEvent, } from 'rxjs';
+import { map, buffer, debounceTime, filter } from 'rxjs/operators';
+
 // Fixtures/constants
 const height = 500;
 const width = 700;
 const margin = { top: 20, right: 30, bottom: 30, left: 80 };
 
-const LOG = (msg) => console.log(msg);
+const DEBUG = false;
+
+const LOG = (msg) => DEBUG && console.log(msg);
 
 // Dimensional Bounds
 const xMin = margin.left;
@@ -25,8 +31,6 @@ const xRange = [xMin, xMax];
 const yMax = margin.top;
 const yMin = height - margin.bottom;
 const yRange = [yMin, yMax]; // y Axis is upside down
-
-console.log('XRange', xRange);
 
 const DATA = mockData.map(series => {
   return {
@@ -38,6 +42,23 @@ const DATA = mockData.map(series => {
 const D3_DATA = DATA.map(series =>
   zipWith(series.x, series.y, (x, y) => ({ x, y }))
 );
+
+// Document level listeners, to reset the view
+// DoubleClick
+const mouse$ = fromEvent(document, "click");
+
+const buff$ = mouse$.pipe(debounceTime(250));
+
+const doubleClick$ = mouse$.pipe(
+  buffer(buff$),
+  map(list => {
+    return list.length;
+  }),
+  filter(x => x === 2)
+);
+
+
+
 
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
@@ -113,16 +134,16 @@ const drawChart = (target, dataset) => {
 
   // INTERACTIONS
   const brushedX = function () { // non-arrow function so that "this" binds correctly
-    console.log("Started x brush");
+    LOG("Started x brush");
     const selection = brushSelection(this);
 
     // No reset for now. Beware an extra event may be firing every time.
     if (selection === null) return;
 
     // Careful- this mutates xScale inplace
-    console.log(xScale.range());
+    LOG(xScale.range());
     xScale.domain(selection.map(xScale.invert, xScale));
-    console.log(xScale.range());
+    LOG(xScale.range());
     // Redraw, note the hidden state of xScale implicitly passed in
     lines
       .attr("d", lineGenerator);
@@ -160,15 +181,13 @@ const drawChart = (target, dataset) => {
   };
 
   const onXDragMove = function () {
-
     // Move the axis
-    console.log(event);
+    LOG(event);
     const { dx } = event;
     xAxisGroup
       .attr('transform', `translate(${dx},0)`);
-
     // Move the data
-    console.log("MOVING!");
+    LOG("MOVING!");
   }
 
   // Add a brush for the X-axis
@@ -200,12 +219,25 @@ const drawChart = (target, dataset) => {
     .attr("class", "brush")
     .call(xBrush)
 
-  // Y axis
+  // Y axis Brush
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(yBrush)
+
+  // Reset the chart if there's a double-doubleClick
+  doubleClick$.subscribe(() => {
+    xScale.domain(xDomain)
+    yScale.domain(yDomain);
+    // Redraw the lines
+    lines.attr("d", lineGenerator);
+    // Redraw the axes
+    xAxisGroup.call(xAxis);
+    yAxisGroup.call(yAxis);
+  });
 };
+
+
 
 // Event Handlers
 drawChart(select("#app"), D3_DATA);
