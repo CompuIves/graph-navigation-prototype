@@ -4,7 +4,10 @@ import { scaleTime, scaleLinear, select, line, event } from "d3";
 
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
-import { brushX, brushSelection } from "d3-brush";
+import { brushX, brushY, brushSelection } from "d3-brush";
+
+import { drag } from "d3-drag";
+
 import { zipWith } from "lodash";
 
 // Fixtures/constants
@@ -69,6 +72,8 @@ const drawChart = (target, dataset) => {
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
+    // Add dragging behavior
+    .call(drag().on('drag', onXDragMove));
 
   const xAxisGroup = svg.append('g')
     .attr('class', 'x--axis')
@@ -107,8 +112,7 @@ const drawChart = (target, dataset) => {
     .attr("d", lineGenerator);
 
   // INTERACTIONS
-  const brushed = function () { // non-arrow function so that "this" binds correctly
-    console.log({event});
+  const brushedX = function () { // non-arrow function so that "this" binds correctly
     console.log("Started x brush");
     const selection = brushSelection(this);
 
@@ -128,30 +132,79 @@ const drawChart = (target, dataset) => {
 
     // Remove brush: https://github.com/d3/d3-brush/issues/10
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
+
+    // Don't let this bubble up
+    event.sourceEvent.stopPropagation();
   };
+
+  const brushedY = function() {
+    // non-arrow function so that "this" binds correctly
+    console.log("Started x brush");
+    const selection = brushSelection(this);
+
+    // No reset for now. Beware an extra event may be firing every time.
+    if (selection === null) return;
+
+    // Careful- this mutates xScale inplace
+    // Note that this needs to be upside down
+    selection.reverse(); // since y axis goes the other way round
+    yScale.domain(selection.map(yScale.invert, yScale));
+    // Redraw, note the hidden state of xScale implicitly passed in
+    lines.attr("d", lineGenerator);
+
+    // Redraw appropriate axis
+    yAxisGroup.call(yAxis);
+
+    // Remove brush: https://github.com/d3/d3-brush/issues/10
+    yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming
+  };
+
+  const onXDragMove = function () {
+
+    // Move the axis
+    console.log(event);
+    const { dx } = event;
+    xAxisGroup
+      .attr('transform', `translate(${dx},0)`);
+
+    // Move the data
+    console.log("MOVING!");
+  }
 
   // Add a brush for the X-axis
   const xBrush = brushX()
-    // .extent([[xMin, yMax], [xMax, yMin]]) // Y is flipped because of coordinate system
+    .extent([[xMin, yMax], [xMax, yMin]]) // Avoid spilling area into the y axis zone
     // Alternately: brush, start,
-    .on("end", brushed)
+    .on("end", brushedX)
 
   // https://stackoverflow.com/questions/40193786/d3-js-redraw-chart-after-brushing
-  // If this isn't included, the series will overflow the chart body
+  // If this isn't included, the series will overflow the chart body on the x axis
+  // Works together with a piece of CSS in index.html
   svg
     .append("defs")
     .append("clipPath")
     .attr("id", "clip")
     .append("rect")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", xMax - xMin)
+    .attr("height", yMin) // Clip the Y axis
     // keep inside the y axis
     .attr("transform", `translate(${xMin},0)`);
+
+  // Y axis clip
+  const yBrush = brushY()
+    .extent([[0, 0], [xMin, yMin]])
+    .on("end", brushedY);
 
   const xBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(xBrush)
+
+  // Y axis
+  const yBrushGroup = svg
+    .append("g")
+    .attr("class", "brush")
+    .call(yBrush)
 };
 
 // Event Handlers
