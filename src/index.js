@@ -7,8 +7,6 @@ import { extent, max } from "d3-array";
 import { brushX, brushY, brushSelection } from "d3-brush";
 import { zoom } from "d3-zoom";
 
-import { drag } from "d3-drag";
-
 import { zipWith } from "lodash";
 
 // Doubleclicking
@@ -89,24 +87,22 @@ const drawChart = (target, dataset) => {
     .attr("width", width);
 
   // Axes
-  // const xZoom = ;
-  const onXDragMove = function() {
-    console.log("dragged");
+  const onXZoom = function() {
     xScale = event.transform.rescaleX(xScale);
     xAxisGroup.call(xAxis);
     lines.attr("d", lineGenerator);
   };
 
-  const xAxis = g => g // TODO: where should this translate live?
+  const xAxis = g => g // TODO: should this translate be hoisted somewhere
     .attr("transform", `translate(0,${yMin})`)
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
     // Add dragging behavior
-    // .call(drag().on('drag', onXDragMove));
-    .call(zoom()
-      .scaleExtent([1, 1])
-      .on("zoom", onXDragMove));
+    // .call(drag()
+    //       .on('start drag', onXDrag));
+    .call(zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
+      .on("zoom", onXZoom));
 
   const xAxisGroup = svg.append('g')
     .attr('class', 'x--axis')
@@ -172,7 +168,7 @@ const drawChart = (target, dataset) => {
 
   const brushedY = function() {
     // non-arrow function so that "this" binds correctly
-    console.log("Started x brush");
+    LOG("Started y brush");
     const selection = brushSelection(this);
 
     // No reset for now. Beware an extra event may be firing every time.
@@ -180,7 +176,7 @@ const drawChart = (target, dataset) => {
 
     // Careful- this mutates xScale inplace
     // Note that this needs to be upside down
-    selection.reverse(); // since y axis goes the other way round
+    selection.reverse(); // since y axis has max/min flipped
     yScale.domain(selection.map(yScale.invert, yScale));
     // Redraw, note the hidden state of xScale implicitly passed in
     lines.attr("d", lineGenerator);
