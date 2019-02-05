@@ -70,17 +70,16 @@ const drawChart = (target, dataset) => {
       .ticks(width / 80)
       .tickSizeOuter(0))
 
-  svg.append('g')
+  const xAxisGroup = svg.append('g')
     .attr('class', 'x--axis')
     .call(xAxis);
-
 
   const yAxis = g => g
     .attr("transform", `translate(${xMin},0)`)
     .call(axisLeft(yScale))
     .call(g => g.select(".domain").remove())
 
-  svg
+  const yAxisGroup = svg
     .append("g")
     .attr("class", "y--axis")
     .call(yAxis);
@@ -124,18 +123,18 @@ const drawChart = (target, dataset) => {
     lines
       .attr("d", lineGenerator);
 
+    // Redraw appropriate axis
+    xAxisGroup.call(xAxis);
+
     // Remove brush: https://github.com/d3/d3-brush/issues/10
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
   };
-
-  // extent
 
   // Add a brush for the X-axis
   const xBrush = brushX()
     // .extent([[xMin, yMax], [xMax, yMin]]) // Y is flipped because of coordinate system
     // Alternately: brush, start,
     .on("end", brushed)
-
 
   // https://stackoverflow.com/questions/40193786/d3-js-redraw-chart-after-brushing
   // If this isn't included, the series will overflow the chart body
