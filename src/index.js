@@ -1,14 +1,16 @@
 import { mockData } from "./mockData";
 
 import { scaleTime, scaleLinear, select, line, event } from "d3";
+
+import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
 import { brushX, brushSelection } from "d3-brush";
-import { zipWith, debounce } from "lodash";
+import { zipWith } from "lodash";
 
 // Fixtures/constants
 const height = 500;
-const width = 600;
-const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+const width = 700;
+const margin = { top: 20, right: 30, bottom: 30, left: 80 };
 
 const LOG = (msg) => console.log(msg);
 
@@ -20,6 +22,8 @@ const xRange = [xMin, xMax];
 const yMax = margin.top;
 const yMin = height - margin.bottom;
 const yRange = [yMin, yMax]; // y Axis is upside down
+
+console.log('XRange', xRange);
 
 const DATA = mockData.map(series => {
   return {
@@ -59,13 +63,35 @@ const drawChart = (target, dataset) => {
     .attr("height", height)
     .attr("width", width);
 
+  // Axes
+  const xAxis = g => g
+    .attr("transform", `translate(0,${yMin})`)
+    .call(axisBottom(xScale)
+      .ticks(width / 80)
+      .tickSizeOuter(0))
+
+  svg.append('g')
+    .attr('class', 'x--axis')
+    .call(xAxis);
+
+
+  const yAxis = g => g
+    .attr("transform", `translate(${xMin},0)`)
+    .call(axisLeft(yScale))
+    .call(g => g.select(".domain").remove())
+
+  svg
+    .append("g")
+    .attr("class", "y--axis")
+    .call(yAxis);
+
   // DATA FUNCTION
   const lineGenerator = line()
     .defined(d => !isNaN(d.y))
     .x(d => xScale(d.x))
     .y(d => yScale(d.y));
 
-  // Draw a line for each series
+  // Draw line for each series
   const lineContainer = svg
     .append("g")
     .attr("fill", "none")
@@ -81,10 +107,8 @@ const drawChart = (target, dataset) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
-  // Add some axes
-
   // INTERACTIONS
-  const brushed = function () { // non-arrow function so that "this" will work
+  const brushed = function () { // non-arrow function so that "this" binds correctly
     console.log({event});
     console.log("Started x brush");
     const selection = brushSelection(this);
@@ -93,28 +117,42 @@ const drawChart = (target, dataset) => {
     if (selection === null) return;
 
     // Careful- this mutates xScale inplace
+    console.log(xScale.range());
     xScale.domain(selection.map(xScale.invert, xScale));
+    console.log(xScale.range());
     // Redraw, note the hidden state of xScale implicitly passed in
     lines
       .attr("d", lineGenerator);
 
-    // Remove the brush after zooming
-    xBrushGroup.call(xBrush.move, null);
+    // Remove brush: https://github.com/d3/d3-brush/issues/10
+    xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
   };
+
+  // extent
 
   // Add a brush for the X-axis
   const xBrush = brushX()
-    .extent([[xMin, yMax], [xMax, yMin]]) // Y is flipped because of coordinate system
+    // .extent([[xMin, yMax], [xMax, yMin]]) // Y is flipped because of coordinate system
     // Alternately: brush, start,
     .on("end", brushed)
+
+
+  // https://stackoverflow.com/questions/40193786/d3-js-redraw-chart-after-brushing
+  // If this isn't included, the series will overflow the chart body
+  svg
+    .append("defs")
+    .append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    // keep inside the y axis
+    .attr("transform", `translate(${xMin},0)`);
 
   const xBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(xBrush)
-
-  // Put the X axis below the previous graph so that it doesn't collide with the brush
-  // Important because we want to pan with it
 };
 
 // Event Handlers
