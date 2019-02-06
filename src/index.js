@@ -86,7 +86,7 @@ const drawChart = (target, dataset, layout) => {
     .nice()
     .range([layout.yMin, layout.yMax]);
 
-  // DOM MANIPULATION TIME
+  // Mutate the DOM
   const svg = target
     .append("svg")
     .attr("height", layout.height)
@@ -196,14 +196,13 @@ const drawChart = (target, dataset, layout) => {
   // https://stackoverflow.com/questions/40193786/d3-js-redraw-chart-after-brushing
   // If this isn't included, the series will overflow the chart body on the x axis
   // Works together with a piece of CSS in index.html
-  svg
+  const clipPath = svg
     .append("defs")
     .append("clipPath")
     .attr("id", "clip")
     .append("rect")
     .attr("width", layout.xMax - layout.xMin)
     .attr("height", layout.yMin) // Clip the Y axis
-    // keep inside the y axis
     .attr("transform", `translate(${xMin},0)`);
 
   // Y axis Brush
@@ -222,17 +221,40 @@ const drawChart = (target, dataset, layout) => {
     .attr("class", "brush")
     .call(xBrush)
 
-  // Reset the chart if there's a double-doubleClick
-  doubleClick$.subscribe(() => {
-    xScale.domain(xDomain)
-    yScale.domain(yDomain);
-    // Redraw the lines
-    lines.attr("d", lineGenerator);
-    // Redraw the axes
-    xAxisGroup.call(xAxis);
-    yAxisGroup.call(yAxis);
-  });
+  // Return an object with the props we might still want to manipulate...
+  // Replace with class in the future
+  // Or replace with "redraw lines"
+  return {
+    xDomain,
+    yDomain,
+    lineGenerator,
+    xAxisGroup,
+    yAxisGroup,
+    xScale,
+    yScale,
+    xAxis,
+    yAxis,
+    lines
+  }
 };
 
-// Event Handlers
-drawChart(select("#app"), D3_DATA, LAYOUT);
+// Draw the chart
+const mainChart = drawChart(select("#app"), D3_DATA, LAYOUT);
+
+// Command: has side effect
+// Brings back the original "zoom"/filter level
+const resetLineChart = (chart) => {
+  // Modify the scales to go back to their original extent
+  chart.xScale.domain(chart.xDomain); // Bind to original extent
+  chart.yScale.domain(chart.yDomain);
+  // Redraw the lines
+  chart.lines.attr("d", chart.lineGenerator);
+  // Redraw the axes
+  chart.xAxisGroup.call(chart.xAxis);
+  chart.yAxisGroup.call(chart.yAxis);
+}
+
+// Add some behavior from the outside to manipulate the chart
+doubleClick$.subscribe(() => {
+  resetLineChart(mainChart);
+});
