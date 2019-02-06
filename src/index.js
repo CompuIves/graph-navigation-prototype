@@ -13,7 +13,7 @@ import { zipWith } from "lodash";
 
 // Doubleclicking
 import { fromEvent, Subject } from 'rxjs';
-import { map, buffer, debounceTime, filter } from 'rxjs/operators';
+import { map, buffer, debounceTime, filter, distinctUntilChanged } from 'rxjs/operators';
 
 // Debugging helpers
 const DEBUG = false;
@@ -157,7 +157,7 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
-  // Reusable functions
+  // Render functions to hoist into a class
   const drawLines = (pathGenerator) => { // return SVG path data as a function of data bound to each line
     lines.attr("d", pathGenerator);
 
@@ -167,6 +167,13 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
       ySelection: yScale.domain()
     })
   }
+  const drawXAxis = () =>  xAxisGroup.call(xAxis);
+  const drawYAxis = () =>  yAxisGroup.call(yAxis);
+  const drawAxes = () => { // uses implicit state from yScale / xScale
+    // return SVG path data as a function of data bound to each line
+    drawXAxis();
+    drawYAxis();
+  };
 
   // INTERACTIONS
   const brushedX = function () { // non-arrow function so that "this" binds correctly
@@ -180,9 +187,7 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     xScale.domain(selection.map(xScale.invert, xScale));
     // Redraw, note that lineGenerator is already pointing to xScale so there's some hidden state passed in.
     drawLines(lineGenerator);
-
-    // Redraw appropriate axis
-    xAxisGroup.call(xAxis);
+    drawXAxis();
 
     // Remove brush: https://github.com/d3/d3-brush/issues/10
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
@@ -204,9 +209,8 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     yScale.domain(selection.map(yScale.invert, yScale));
     // Redraw, note that lineGenerator is already pointing to xScale so there's some hidden state passed in.
     drawLines(lineGenerator);
+    drawYAxis();
 
-    // Redraw appropriate axis
-    yAxisGroup.call(yAxis);
     yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming https://github.com/d3/d3-brush/issues/10
   };
 
@@ -233,13 +237,11 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
   const yBrush = brushY()
     .extent([[0, 0], [layout.xMax, layout.yMin]])
     .on("end", brushedY);
-
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(yBrush)
 
-  // Want this to override with the y axis
   const xBrushGroup = svg
     .append("g")
     .attr("class", "brush")
@@ -252,23 +254,22 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     xDomain,
     yDomain,
     lineGenerator,
-    xAxisGroup,
-    yAxisGroup,
     xScale,
     yScale,
-    xAxis,
-    yAxis,
     lines,
     // Interaction
     xZoom,
     // Redraw funcs
     drawLines,
+    drawAxes,
   }
 };
 
 // Draw the main line chart
-// Contains xSelection, ySelection, which are the values of xScale.domain() and yScale.domain() for the top graph
+// Create a thing for mainChart to push events into
 const mainChartSelection$ = new Subject();
+
+// Contains xSelection, ySelection, which are the values of xScale.domain() and yScale.domain() for the top graph
 const mainChartLayout = getLayout({ width, height, margin });
 const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout, mainChartSelection$);
 
@@ -284,8 +285,7 @@ const resetLineChart = (chart) => {
 
   chart.drawLines(chart.lineGenerator);
   // Redraw the axes
-  chart.xAxisGroup.call(chart.xAxis);
-  chart.yAxisGroup.call(chart.yAxis);
+  chart.drawAxes();
 }
 
 // Add some behavior from the outside to manipulate the chart
@@ -365,12 +365,12 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     const newYDomain = ySelection.map(yScale.invert, yScale);
     targetChart.yScale.domain(newYDomain);
 
+    // TODO: think through more what is the right place to fire "report position" messages from
     targetChart.lines
-      .attr("d", targetChart.lineGenerator);
+      .attr("d", targetChart.lineGenerator); // Don't use "drawLines" because it'll fire an infinite loop of brush redrawing
 
     // Redraw appropriate axis
-    targetChart.xAxisGroup.call(targetChart.xAxis);
-    targetChart.yAxisGroup.call(targetChart.yAxis);
+    targetChart.drawAxes();
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])
@@ -382,12 +382,8 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .call(twoDimensionalBrush);
 
   return {
-    xDomain,
-    yDomain,
-    lineGenerator,
     xScale,
     yScale,
-    lines,
     twoDimensionalBrushGroup,
     twoDimensionalBrush
   }
@@ -410,23 +406,28 @@ miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
   [minimapLayout.xMax, minimapLayout.yMin]                             // far right
 ]);
 
+// Given a chart, moves its twoDimensional brush to the correct location.
+// Chart must expose: "twoDimensionalBrush, twoDimensionalBrushGroup, xScale, yScale"
+const moveBrush = (chart, selection) => {
+  const { xScale, yScale } = chart;
+  const topLeft = [xScale(selection.xSelection[0]), yScale(selection.ySelection[1])];
+  const bottomRight = [xScale(selection.xSelection[1]), yScale(selection.ySelection[0])];
+
+  chart.twoDimensionalBrush.move(chart.twoDimensionalBrushGroup, [
+    topLeft,
+    bottomRight
+  ]);
+}
+
 // We can make the mini chart do things when the top thing changes
 /**
- * values: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
+ * @param: selection: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
 */
-mainChartSelection$.subscribe({
+mainChartSelection$
+.pipe(distinctUntilChanged())
+.subscribe({
   next: selection => {
-    const {xScale, yScale } = miniMap;
-
-    console.log('selection', selection);
-    const topLeft = [xScale(selection.xSelection[0]), yScale(selection.ySelection[1])];
-    const bottomRight = [xScale(selection.xSelection[1]), yScale(selection.ySelection[0])];
-
-    console.log({topLeft, bottomRight})
-
-    miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
-      topLeft,     // startpoint
-      bottomRight                       // far right
-    ]);
+    console.log(selection.xSelection)
+    moveBrush(miniMap, selection)
   }
 });
