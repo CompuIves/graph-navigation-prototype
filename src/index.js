@@ -18,6 +18,7 @@ const height = 500;
 const width = 700;
 const margin = { top: 20, right: 30, bottom: 30, left: 80 };
 
+
 const DEBUG = false;
 
 const LOG = (msg) => DEBUG && console.log(msg);
@@ -25,11 +26,20 @@ const LOG = (msg) => DEBUG && console.log(msg);
 // Dimensional Bounds
 const xMin = margin.left;
 const xMax = width - margin.right;
-const xRange = [xMin, xMax];
 
 const yMax = margin.top;
 const yMin = height - margin.bottom;
-const yRange = [yMin, yMax]; // y Axis is upside down
+const LAYOUT = {
+  height,
+  width,
+  margin,
+  // Bounds
+  xMin,
+  xMax,
+  yMin,
+  yMax,
+};
+
 
 const DATA = mockData.map(series => {
   return {
@@ -45,9 +55,7 @@ const D3_DATA = DATA.map(series =>
 // Document level listeners, to reset the view
 // DoubleClick
 const mouse$ = fromEvent(document, "click");
-
 const buff$ = mouse$.pipe(debounceTime(250));
-
 const doubleClick$ = mouse$.pipe(
   buffer(buff$),
   map(list => {
@@ -56,14 +64,12 @@ const doubleClick$ = mouse$.pipe(
   filter(x => x === 2)
 );
 
-
-
-
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
  * @param target: a d3-selection of a node to attach things to.
+ * @param layout: object with data relating to pixels / page layout, rather than data values
  */
-const drawChart = (target, dataset) => {
+const drawChart = (target, dataset, layout) => {
   // TODO: make this true across all series, not just the first
   // Flat array across all series
   const data = dataset[0];
@@ -73,18 +79,18 @@ const drawChart = (target, dataset) => {
   // Scaling functions
   let xScale = scaleTime()
     .domain(xDomain)
-    .range(xRange);
+    .range([layout.xMin, layout.xMax]);
 
   const yScale = scaleLinear()
     .domain(yDomain)
     .nice()
-    .range(yRange);
+    .range([layout.yMin, layout.yMax]);
 
   // DOM MANIPULATION TIME
   const svg = target
     .append("svg")
-    .attr("height", height)
-    .attr("width", width);
+    .attr("height", layout.height)
+    .attr("width", layout.width);
 
   // Axes
   const onXZoom = function() {
@@ -94,7 +100,7 @@ const drawChart = (target, dataset) => {
   };
 
   const xAxis = g => g // TODO: should this translate be hoisted somewhere
-    .attr("transform", `translate(0,${yMin})`)
+    .attr("transform", `translate(0,${layout.yMin})`)
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
@@ -106,7 +112,7 @@ const drawChart = (target, dataset) => {
     .call(xAxis);
 
   const yAxis = g => g
-    .attr("transform", `translate(${xMin},0)`)
+    .attr("transform", `translate(${layout.xMin},0)`)
     .call(axisLeft(yScale))
     .call(g => g.select(".domain").remove())
 
@@ -146,9 +152,7 @@ const drawChart = (target, dataset) => {
     if (selection === null) return;
 
     // Careful- this mutates xScale inplace
-    LOG(xScale.range());
     xScale.domain(selection.map(xScale.invert, xScale));
-    LOG(xScale.range());
     // Redraw, note the hidden state of xScale implicitly passed in
     lines
       .attr("d", lineGenerator);
@@ -184,7 +188,7 @@ const drawChart = (target, dataset) => {
 
   // Add a brush for the X-axis
   const xBrush = brushX()
-    .extent([[xMin, yMax], [xMax, yMin]]) // Avoid spilling area into the y axis zone
+    .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]]) // Avoid spilling area into the y axis zone
     // Alternately: brush, start,
     .on("end", brushedX)
 
@@ -197,21 +201,20 @@ const drawChart = (target, dataset) => {
     .append("clipPath")
     .attr("id", "clip")
     .append("rect")
-    .attr("width", xMax - xMin)
-    .attr("height", yMin) // Clip the Y axis
+    .attr("width", layout.xMax - layout.xMin)
+    .attr("height", layout.yMin) // Clip the Y axis
     // keep inside the y axis
     .attr("transform", `translate(${xMin},0)`);
 
   // Y axis Brush
   const yBrush = brushY()
-    .extent([[0, 0], [xMax, yMin]])
+    .extent([[0, 0], [layout.xMax, layout.yMin]])
     .on("end", brushedY);
 
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(yBrush)
-
 
   // Want this to override with the y axis
   const xBrushGroup = svg
@@ -232,4 +235,4 @@ const drawChart = (target, dataset) => {
 };
 
 // Event Handlers
-drawChart(select("#app"), D3_DATA);
+drawChart(select("#app"), D3_DATA, LAYOUT);
