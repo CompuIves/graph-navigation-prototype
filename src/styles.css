@@ -3,9 +3,13 @@ body {
   background-size: 100%;
 }
 
-#app {
+/* Main Wrapper */
+#outer {
   width: 900px;
   margin: 0 auto;
+}
+
+#app {
   margin-top: 20px;
 }
 
