@@ -160,12 +160,6 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
   // Render functions to hoist into a class
   const drawLines = (pathGenerator) => { // return SVG path data as a function of data bound to each line
     lines.attr("d", pathGenerator);
-
-    // After lines are drawn, always report the currently selected area
-    chartSelection$.next({
-      xSelection: xScale.domain(),
-      ySelection: yScale.domain()
-    })
   }
   const drawXAxis = () =>  xAxisGroup.call(xAxis);
   const drawYAxis = () =>  yAxisGroup.call(yAxis);
@@ -174,6 +168,13 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     drawXAxis();
     drawYAxis();
   };
+
+  const reportCurrentBounds = () => { // side effect: notifies external subject about the new selection
+    chartSelection$.next({
+      xSelection: xScale.domain(),
+      ySelection: yScale.domain()
+    })
+  }
 
   // INTERACTIONS
   const brushedX = function () { // non-arrow function so that "this" binds correctly
@@ -193,6 +194,8 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
 
     event.sourceEvent.stopPropagation(); // Don't let this trigger more things
+
+    reportCurrentBounds();
   };
 
   const brushedY = function() {
@@ -212,6 +215,8 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     drawYAxis();
 
     yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming https://github.com/d3/d3-brush/issues/10
+
+    reportCurrentBounds();
   };
 
   // Add a brush for the X-axis
@@ -256,12 +261,15 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     lineGenerator,
     xScale,
     yScale,
+    xAxisGroup, // for zoom
     lines,
     // Interaction
     xZoom,
     // Redraw funcs
     drawLines,
     drawAxes,
+    // observable reporters
+    reportCurrentBounds,
   }
 };
 
@@ -273,25 +281,6 @@ const mainChartSelection$ = new Subject();
 const mainChartLayout = getLayout({ width, height, margin });
 const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout, mainChartSelection$);
 
-// Command: has side effect
-const resetLineChart = (chart) => {
-  // Modify the scales to go back to their original extent
-  // This is the state that gets passed to other things
-  chart.xScale.domain(chart.xDomain); // Reset domain to the originals
-  chart.yScale.domain(chart.yDomain);
-
-  // Reset the zoom
-  chart.xZoom.transform(chart.xAxisGroup, zoomIdentity);
-
-  chart.drawLines(chart.lineGenerator);
-  // Redraw the axes
-  chart.drawAxes();
-}
-
-// Add some behavior from the outside to manipulate the chart
-doubleClick$.subscribe(() => {
-  resetLineChart(mainChart);
-});
 
 // PART 2
 // Add a minimap! which is a tiny brushable chart for controlling another chart.
@@ -366,8 +355,9 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     targetChart.yScale.domain(newYDomain);
 
     // TODO: think through more what is the right place to fire "report position" messages from
-    targetChart.lines
-      .attr("d", targetChart.lineGenerator); // Don't use "drawLines" because it'll fire an infinite loop of brush redrawing
+    targetChart.drawLines(targetChart.lineGenerator);
+    // targetChart.lines
+    //   .attr("d", targetChart.lineGenerator); // Don't use "drawLines" because it'll fire an infinite loop of brush redrawing
 
     // Redraw appropriate axis
     targetChart.drawAxes();
@@ -406,9 +396,32 @@ miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
   [minimapLayout.xMax, minimapLayout.yMin]                             // far right
 ]);
 
+// Part 3: Asynchronous Things that involve coordinating multiple charts (RxJS Observables)
+const resetLineChart = (chart) => { // Impure: has side effect
+  // Modify the scales to go back to their original extent
+  // This is the state that gets passed to other things
+  chart.xScale.domain(chart.xDomain); // Reset domain to the originals
+  chart.yScale.domain(chart.yDomain);
+
+  // Reset the zoom
+  chart.xZoom.transform(chart.xAxisGroup, zoomIdentity);
+
+  chart.drawLines(chart.lineGenerator);
+  // Redraw the axes
+  chart.drawAxes();
+  // Report the limits of the current X and Y
+  chart.reportCurrentBounds();
+}
+
+// Add some behavior from the outside to manipulate the chart
+doubleClick$.subscribe(() => {
+  resetLineChart(mainChart);
+});
+
+
 // Given a chart, moves its twoDimensional brush to the correct location.
 // Chart must expose: "twoDimensionalBrush, twoDimensionalBrushGroup, xScale, yScale"
-const moveBrush = (chart, selection) => {
+const moveBrush = (chart, selection) => { // impure
   const { xScale, yScale } = chart;
   const topLeft = [xScale(selection.xSelection[0]), yScale(selection.ySelection[1])];
   const bottomRight = [xScale(selection.xSelection[1]), yScale(selection.ySelection[0])];
@@ -419,15 +432,13 @@ const moveBrush = (chart, selection) => {
   ]);
 }
 
-// We can make the mini chart do things when the top thing changes
 /**
  * @param: selection: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
 */
 mainChartSelection$
-.pipe(distinctUntilChanged())
+.pipe(distinctUntilChanged()) // No need to let people know if the values for some reason have not changed from the last selection
 .subscribe({
   next: selection => {
-    console.log(selection.xSelection)
     moveBrush(miniMap, selection)
   }
 });
