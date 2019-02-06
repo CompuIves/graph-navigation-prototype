@@ -1,3 +1,5 @@
+import './styles.css';
+
 import { mockData } from "./mockData";
 
 import { scaleTime, scaleLinear, select, line, event } from "d3";
@@ -14,10 +16,9 @@ import { fromEvent, } from 'rxjs';
 import { map, buffer, debounceTime, filter } from 'rxjs/operators';
 
 // Fixtures/constants
-const height = 500;
-const width = 700;
-const margin = { top: 20, right: 30, bottom: 30, left: 80 };
-
+const height = 550;
+const width = 900;
+const margin = { top: 20, right: 30, bottom: 130, left: 30 };
 
 const DEBUG = false;
 
@@ -90,7 +91,9 @@ const drawChart = (target, dataset, layout) => {
   const svg = target
     .append("svg")
     .attr("height", layout.height)
-    .attr("width", layout.width);
+    .attr("width", layout.width)
+    .attr("class", "bg");
+    ;
 
   // Axes
   const onXZoom = function() {

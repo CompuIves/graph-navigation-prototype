@@ -1,0 +1,59 @@
+body {
+  /* background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png"); */
+  background-size: 100%;
+}
+
+#app {
+  width: 900px;
+  margin: 0 auto;
+  margin-top: 20px;
+}
+
+.lineSeries {
+  clip-path: url(#clip);
+}
+
+.x--axis {
+  cursor: hand;
+}
+
+.axis-highlight {
+  fill: transparent;
+}
+.axis-highlight:hover {
+  fill: rgba(224, 239, 247, 1);
+  cursor: hand;
+}
+
+.highlight-hover {
+  fill: rgba(224, 239, 247, 1);
+  cursor: hand;
+}
+
+.grid line {
+  stroke: lightgrey;
+  stroke-opacity: 0.5;
+  shape-rendering: crispEdges;
+}
+
+.grid path {
+  stroke-width: 0;
+}
+
+/* // Main Chart */
+.bg {
+  background-color: white;
+  margin: 0px auto;
+}
+
+.y-axis-highlight {
+  fill: transparent;
+}
+.y-axis-highlight:hover {
+  fill: #e0eff7;
+  cursor: hand;
+}
+
+.y-brush rect.overlay {
+  cursor: ns-resize;
+}
