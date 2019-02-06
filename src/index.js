@@ -7,7 +7,7 @@ import { scaleTime, scaleLinear, select, line, event } from "d3";
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
 import { brush, brushX, brushY, brushSelection } from "d3-brush";
-import { zoom } from "d3-zoom";
+import { zoom, zoomIdentity } from "d3-zoom";
 
 import { zipWith } from "lodash";
 
@@ -43,7 +43,6 @@ const getLayout = ({width, height, margin}) => {
   }
 }
 
-const LAYOUT = getLayout({width, height, margin});
 
 
 const DATA = mockData.map(series => {
@@ -106,17 +105,20 @@ const drawChart = (node, dataset, layout) => {
     lines.attr("d", lineGenerator);
   };
 
+  const xZoom = zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
+    .on("zoom", onXZoom);
+
   const xAxis = g => g // TODO: should this translate be hoisted somewhere
     .attr("transform", `translate(0,${layout.yMin})`)
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
-    .call(zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
-      .on("zoom", onXZoom));
 
-  const xAxisGroup = svg.append('g')
-    .attr('class', 'x--axis')
-    .call(xAxis);
+  const xAxisGroup = svg
+    .append("g")
+    .attr("class", "x--axis")
+    .call(xAxis)
+    .call(xZoom);
 
   const yAxis = g => g
     .attr("transform", `translate(${layout.xMin},0)`)
@@ -155,6 +157,12 @@ const drawChart = (node, dataset, layout) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
+  // Reusable functions
+  const drawLines = (pathGenerator) => { // return SVG path data as a function of data bound to each line
+    lines.attr("d", pathGenerator);
+  }
+
+
   // INTERACTIONS
   const brushedX = function () { // non-arrow function so that "this" binds correctly
     LOG("Started x brush");
@@ -166,8 +174,7 @@ const drawChart = (node, dataset, layout) => {
     // Careful- this mutates xScale inplace
     xScale.domain(selection.map(xScale.invert, xScale));
     // Redraw, note the hidden state of xScale implicitly passed in
-    lines
-      .attr("d", lineGenerator);
+    drawLines(lineGenerator);
 
     // Redraw appropriate axis
     xAxisGroup.call(xAxis);
@@ -246,12 +253,15 @@ const drawChart = (node, dataset, layout) => {
     yScale,
     xAxis,
     yAxis,
-    lines
+    lines,
+    // Interaction
+    xZoom
   }
 };
 
 // Draw the main line chart
-const mainChart = drawChart(select("#app"), D3_DATA, LAYOUT);
+const mainChartLayout = getLayout({ width, height, margin });
+const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout);
 
 // Command: has side effect
 // Brings back the original "zoom"/filter level
@@ -259,6 +269,10 @@ const resetLineChart = (chart) => {
   // Modify the scales to go back to their original extent
   chart.xScale.domain(chart.xDomain); // Bind to original extent
   chart.yScale.domain(chart.yDomain);
+
+  // Reset the zoom
+  chart.xZoom.transform(chart.xAxisGroup, zoomIdentity);
+
   // Redraw the lines
   chart.lines.attr("d", chart.lineGenerator);
   // Redraw the axes
@@ -303,22 +317,6 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("width", layout.width)
     .attr("class", "bg minimap");
   ;
-
-  // Axes
-  const onXZoom = function () {
-    xScale = event.transform.rescaleX(xScale);
-    xAxisGroup.call(xAxis);
-    lines.attr("d", lineGenerator);
-  };
-
-  const xAxis = g => g // TODO: should this translate be hoisted somewhere
-    .attr("transform", `translate(0,${layout.yMin})`)
-    .call(axisBottom(xScale)
-      .ticks(width / 80)
-      .tickSizeOuter(0))
-    .call(zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
-      .on("zoom", onXZoom));
-
   // DATA FUNCTION
   const lineGenerator = line()
     .defined(d => !isNaN(d.y))
@@ -341,7 +339,6 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
-
   // Interactions - an XY Brush
   const brushedTwoDimensional = function () {
     console.log("Minimap 2d Brush Triggered");
@@ -352,13 +349,11 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     const xSelection = [topLeftCorner[0], bottomRightCorner[0]];
     const ySelection = [topLeftCorner[1], bottomRightCorner[1]];
 
-    console.log({xSelection, ySelection});
-
     // Then, we'll redraw the x dimension
     const newXDomain = xSelection.map(xScale.invert, xScale);
     targetChart.xScale.domain(newXDomain);
 
-    ySelection.reverse(); // Y selection is always reversed
+    ySelection.reverse(); // Y selection is backwards
     const newYDomain = ySelection.map(yScale.invert, yScale);
     targetChart.yScale.domain(newYDomain);
 
@@ -368,13 +363,10 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     // Redraw appropriate axis
     targetChart.xAxisGroup.call(targetChart.xAxis);
     targetChart.yAxisGroup.call(targetChart.yAxis);
-
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])
     .on('end', brushedTwoDimensional);
-
-
 
   const twoDimensionalBrushGroup = svg
     .append('g')
@@ -387,16 +379,23 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     lineGenerator,
     xScale,
     yScale,
-    lines
+    lines,
+    twoDimensionalBrushGroup,
+    twoDimensionalBrush
   }
 };
 
-
 const minimapMargin = { top: 0, right: 30, bottom: 0, left: 30 };
-
 const minimapLayout = getLayout({
   width: 900,
   height: 80,
   margin: minimapMargin
 });
+
 const miniMap = drawMinimap(select("#minimap"), D3_DATA, minimapLayout, mainChart);
+
+// On initial page load, load the second half of data
+miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
+  [(minimapLayout.xMin + minimapLayout.xMax) / 2, minimapLayout.yMax], // midpoint
+  [minimapLayout.xMax, minimapLayout.yMin]                             // far right
+]);
