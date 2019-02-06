@@ -12,17 +12,17 @@ import { zoom, zoomIdentity } from "d3-zoom";
 import { zipWith } from "lodash";
 
 // Doubleclicking
-import { fromEvent, } from 'rxjs';
+import { fromEvent, Subject } from 'rxjs';
 import { map, buffer, debounceTime, filter } from 'rxjs/operators';
+
+// Debugging helpers
+const DEBUG = false;
+const LOG = msg => DEBUG && console.log(msg);
 
 // Fixtures/constants for main chart
 const height = 550;
 const width = 900;
 const margin = { top: 30, right: 30, bottom: 50, left: 30 };
-
-const DEBUG = false;
-
-const LOG = (msg) => DEBUG && console.log(msg);
 
 // Dimensional Bounds
 const getLayout = ({width, height, margin}) => {
@@ -42,8 +42,6 @@ const getLayout = ({width, height, margin}) => {
       yMax,
   }
 }
-
-
 
 const DATA = mockData.map(series => {
   return {
@@ -68,12 +66,14 @@ const doubleClick$ = mouse$.pipe(
   filter(x => x === 2)
 );
 
+
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
  * @param node: a d3-selection of a node to attach things to.
  * @param layout: object with data relating to pixels / page layout, rather than data values
+ * @param chartSelection$: a subject that reports data about what the current boundaries of the graph view are
  */
-const drawChart = (node, dataset, layout) => {
+const drawChart = (node, dataset, layout, chartSelection$) => {
   // TODO: make this true across all series, not just the first
   // Flat array across all series
   const data = dataset[0];
@@ -160,8 +160,13 @@ const drawChart = (node, dataset, layout) => {
   // Reusable functions
   const drawLines = (pathGenerator) => { // return SVG path data as a function of data bound to each line
     lines.attr("d", pathGenerator);
-  }
 
+    // After lines are drawn, always report the currently selected area
+    chartSelection$.next({
+      xSelection: xScale.domain(),
+      ySelection: yScale.domain()
+    })
+  }
 
   // INTERACTIONS
   const brushedX = function () { // non-arrow function so that "this" binds correctly
@@ -173,7 +178,7 @@ const drawChart = (node, dataset, layout) => {
 
     // Careful- this mutates xScale inplace
     xScale.domain(selection.map(xScale.invert, xScale));
-    // Redraw, note the hidden state of xScale implicitly passed in
+    // Redraw, note that lineGenerator is already pointing to xScale so there's some hidden state passed in.
     drawLines(lineGenerator);
 
     // Redraw appropriate axis
@@ -197,8 +202,8 @@ const drawChart = (node, dataset, layout) => {
     // Note that this needs to be upside down
     selection.reverse(); // since y axis has max/min flipped
     yScale.domain(selection.map(yScale.invert, yScale));
-    // Redraw, note the hidden state of xScale implicitly passed in
-    lines.attr("d", lineGenerator);
+    // Redraw, note that lineGenerator is already pointing to xScale so there's some hidden state passed in.
+    drawLines(lineGenerator);
 
     // Redraw appropriate axis
     yAxisGroup.call(yAxis);
@@ -255,26 +260,29 @@ const drawChart = (node, dataset, layout) => {
     yAxis,
     lines,
     // Interaction
-    xZoom
+    xZoom,
+    // Redraw funcs
+    drawLines,
   }
 };
 
 // Draw the main line chart
+// Contains xSelection, ySelection, which are the values of xScale.domain() and yScale.domain() for the top graph
+const mainChartSelection$ = new Subject();
 const mainChartLayout = getLayout({ width, height, margin });
-const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout);
+const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout, mainChartSelection$);
 
 // Command: has side effect
-// Brings back the original "zoom"/filter level
 const resetLineChart = (chart) => {
   // Modify the scales to go back to their original extent
-  chart.xScale.domain(chart.xDomain); // Bind to original extent
+  // This is the state that gets passed to other things
+  chart.xScale.domain(chart.xDomain); // Reset domain to the originals
   chart.yScale.domain(chart.yDomain);
 
   // Reset the zoom
   chart.xZoom.transform(chart.xAxisGroup, zoomIdentity);
 
-  // Redraw the lines
-  chart.lines.attr("d", chart.lineGenerator);
+  chart.drawLines(chart.lineGenerator);
   // Redraw the axes
   chart.xAxisGroup.call(chart.xAxis);
   chart.yAxisGroup.call(chart.yAxis);
@@ -392,10 +400,33 @@ const minimapLayout = getLayout({
   margin: minimapMargin
 });
 
+
 const miniMap = drawMinimap(select("#minimap"), D3_DATA, minimapLayout, mainChart);
 
 // On initial page load, load the second half of data
 miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
-  [(minimapLayout.xMin + minimapLayout.xMax) / 2, minimapLayout.yMax], // midpoint
+  [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
+  // [(minimapLayout.xMin + minimapLayout.xMax) / 2, minimapLayout.yMax], // midpoint
   [minimapLayout.xMax, minimapLayout.yMin]                             // far right
 ]);
+
+// We can make the mini chart do things when the top thing changes
+/**
+ * values: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
+*/
+mainChartSelection$.subscribe({
+  next: selection => {
+    const {xScale, yScale } = miniMap;
+
+    console.log('selection', selection);
+    const topLeft = [xScale(selection.xSelection[0]), yScale(selection.ySelection[1])];
+    const bottomRight = [xScale(selection.xSelection[1]), yScale(selection.ySelection[0])];
+
+    console.log({topLeft, bottomRight})
+
+    miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
+      topLeft,     // startpoint
+      bottomRight                       // far right
+    ]);
+  }
+});
