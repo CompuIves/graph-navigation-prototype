@@ -98,9 +98,6 @@ const drawChart = (target, dataset) => {
     .call(axisBottom(xScale)
       .ticks(width / 80)
       .tickSizeOuter(0))
-    // Add dragging behavior
-    // .call(drag()
-    //       .on('start drag', onXDrag));
     .call(zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
       .on("zoom", onXZoom));
 
@@ -162,8 +159,7 @@ const drawChart = (target, dataset) => {
     // Remove brush: https://github.com/d3/d3-brush/issues/10
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
 
-    // Don't let this bubble up
-    event.sourceEvent.stopPropagation();
+    event.sourceEvent.stopPropagation(); // Don't let this trigger more things
   };
 
   const brushedY = function() {
@@ -183,9 +179,7 @@ const drawChart = (target, dataset) => {
 
     // Redraw appropriate axis
     yAxisGroup.call(yAxis);
-
-    // Remove brush: https://github.com/d3/d3-brush/issues/10
-    yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming
+    yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming https://github.com/d3/d3-brush/issues/10
   };
 
   // Add a brush for the X-axis
@@ -194,6 +188,7 @@ const drawChart = (target, dataset) => {
     // Alternately: brush, start,
     .on("end", brushedX)
 
+  // Y axis clip
   // https://stackoverflow.com/questions/40193786/d3-js-redraw-chart-after-brushing
   // If this isn't included, the series will overflow the chart body on the x axis
   // Works together with a piece of CSS in index.html
@@ -207,13 +202,11 @@ const drawChart = (target, dataset) => {
     // keep inside the y axis
     .attr("transform", `translate(${xMin},0)`);
 
-  // Y axis clip
+  // Y axis Brush
   const yBrush = brushY()
-    .extent([[0, 0], [xMin, yMin]])
+    .extent([[0, 0], [xMax, yMin]])
     .on("end", brushedY);
 
-
-  // Y axis Brush
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
