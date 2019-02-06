@@ -212,16 +212,19 @@ const drawChart = (target, dataset) => {
     .extent([[0, 0], [xMin, yMin]])
     .on("end", brushedY);
 
-  const xBrushGroup = svg
-    .append("g")
-    .attr("class", "brush")
-    .call(xBrush)
 
   // Y axis Brush
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(yBrush)
+
+
+  // Want this to override with the y axis
+  const xBrushGroup = svg
+    .append("g")
+    .attr("class", "brush")
+    .call(xBrush)
 
   // Reset the chart if there's a double-doubleClick
   doubleClick$.subscribe(() => {
