@@ -11,5 +11,8 @@
   "scripts": {
     "dev": "parcel index.html",
     "build": "parcel build index.html"
+  },
+  "devDependencies": {
+    "sass": "^1.17.0"
   }
 }

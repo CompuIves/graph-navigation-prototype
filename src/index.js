@@ -1,4 +1,4 @@
-import './styles.css';
+import './styles.scss';
 
 import { mockData } from "./mockData";
 
@@ -120,7 +120,12 @@ const drawChart = (node, dataset, layout) => {
 
   const yAxis = g => g
     .attr("transform", `translate(${layout.xMin},0)`)
-    .call(axisLeft(yScale))
+    .attr('class', 'grid')
+    .call(axisLeft(yScale)
+          .ticks(layout.height / 70)
+          .tickSize(-layout.width + layout.margin.right * 2, 0)
+          .tickSizeOuter(0)
+    )
     .call(g => g.select(".domain").remove())
 
   const yAxisGroup = svg
@@ -296,7 +301,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .append("svg")
     .attr("height", layout.height)
     .attr("width", layout.width)
-    .attr("class", "bg");
+    .attr("class", "bg minimap");
   ;
 
   // Axes
@@ -337,7 +342,6 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("d", lineGenerator);
 
 
-
   // Interactions - an XY Brush
   const brushedTwoDimensional = function () {
     console.log("Minimap 2d Brush Triggered");
@@ -354,9 +358,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     const newXDomain = xSelection.map(xScale.invert, xScale);
     targetChart.xScale.domain(newXDomain);
 
-    console.log(newXDomain)
-
-    ySelection.reverse();
+    ySelection.reverse(); // Y selection is always reversed
     const newYDomain = ySelection.map(yScale.invert, yScale);
     targetChart.yScale.domain(newYDomain);
 
@@ -365,8 +367,8 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
 
     // Redraw appropriate axis
     targetChart.xAxisGroup.call(targetChart.xAxis);
-    // targetChart.yAxisGroup.call(targetChart.yAxis);
-// Remove the brush after zooming
+    targetChart.yAxisGroup.call(targetChart.yAxis);
+
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])

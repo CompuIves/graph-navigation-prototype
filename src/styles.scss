@@ -13,6 +13,12 @@ body {
   margin-top: 20px;
 }
 
+.minimap {
+  .twoDimensionalBrush rect.overlay {
+    stroke: lightGrey;
+  }
+}
+
 .lineSeries {
   clip-path: url(#clip);
 }
@@ -44,7 +50,7 @@ body {
   stroke-width: 0;
 }
 
-/* // Main Chart */
+/*  Main Chart */
 .bg {
   background-color: white;
   margin: 0px auto;
