@@ -300,6 +300,45 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     .attr("class", "brush")
     .call(xBrush)
 
+  // Add D3 Focus
+  const CROSSHAIR_COLOR = 'lightgrey'
+  const verticalLine = svg
+    .append("line")
+    .attr("opacity", 0)
+    .attr("y1", layout.yMin)
+    .attr("y2", layout.yMax)
+    .attr("stroke", CROSSHAIR_COLOR)
+    .attr("stroke-width", 1)
+    .attr("pointer-events", "none");
+  const horizontalLine = svg.append("line")
+    .attr("opacity", 0)
+    .attr("x1", layout.xMin)
+    .attr("x2", layout.xMax)
+    .attr("stroke", CROSSHAIR_COLOR)
+    .attr("stroke-width", 1)
+    .attr("pointer-events", "none");
+
+  const verticalCrosshairLabel = svg
+    .append("text")
+    .attr("opacity", 0);
+
+  const drawCrosshairs = function () {
+    console.log(event)
+    // mouse = d3.mouse(this);
+    const {offsetX, offsetY} = event;
+    verticalLine.attr("x1", offsetX).attr("x2", offsetX).attr("opacity", 1);
+    horizontalLine.attr("y1", offsetY).attr("y2", offsetY).attr("opacity", 1)
+  }
+
+  const hideCrosshairs = function () {
+    verticalLine.attr("opacity", 0);
+    horizontalLine.attr("opacity", 0);
+  }
+
+  xBrushGroup
+    .on('mousemove', drawCrosshairs)
+    .on('mouseout', hideCrosshairs)
+
   return {
     xDomain,
     yDomain,
@@ -431,9 +470,6 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr('class', 'twoDimensionalBrush')
     .call(twoDimensionalBrush);
 
-  // Add D3 Crosshairs
-
-
   return {
     xScale,
     yScale,
@@ -452,10 +488,13 @@ const minimapLayout = getLayout({
 
 const miniMap = drawMinimap(select("#minimap"), D3_DATA, minimapLayout, mainChart);
 
+// How far into the graph the default time window should be
+const X_DEFAULT_START_RATIO = 2/3;
+
 // On initial page load, load the second half of data
 miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
   // [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
-  [(minimapLayout.xMin + minimapLayout.xMax) / 1.5, minimapLayout.yMax], // midpoint
+  [(minimapLayout.xMin + minimapLayout.xMax) * X_DEFAULT_START_RATIO, minimapLayout.yMax], // midpoint
   [minimapLayout.xMax, minimapLayout.yMin]                             // far right
 ]);
 
@@ -463,7 +502,14 @@ miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
 const resetLineChart = (chart) => { // Impure: has side effect
   // Modify the scales to go back to their original extent
   // This is the state that gets passed to other things
-  chart.xScale.domain(chart.xDomain); // Reset domain to the originals
+  console.log("Chart is Resetting");
+  // Date math
+  const xDomainExtent = chart.xDomain[1] - chart.xDomain[0];
+  const xMin = new Date(); // via https://stackoverflow.com/questions/1197928/how-to-add-30-minutes-to-a-javascript-date-object
+  xMin.setTime(chart.xDomain[0].getTime() + (xDomainExtent * X_DEFAULT_START_RATIO)); // Don't show all data at once
+  const newXDomain = [xMin, chart.xDomain[1]];
+
+  chart.xScale.domain(newXDomain); // Reset domain to the original
   chart.yScale.domain(chart.yDomain);
 
   // Reset the zoom
@@ -496,11 +542,11 @@ const moveBrush = (chart, selection) => { // impure
 }
 
 // Make the miniMap's brush size/move if the displayed data range in the mainChart changes.
+// Selection is in terms of pixels
 /**
  * @param: selection: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
 */
 mainChartSelection$
-.pipe(distinctUntilChanged()) // No need to let people know if the values for some reason have not changed from the last selection
 .subscribe({
   next: selection => {
     moveBrush(miniMap, selection)
