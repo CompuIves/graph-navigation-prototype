@@ -97,7 +97,6 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     .attr("height", layout.height)
     .attr("width", layout.width)
     .attr("class", "bg");
-    ;
 
   // Axes
   const onXZoom = function() {
@@ -236,11 +235,11 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
 
     // These magic numbers position the labels in an effort to center the text inside the boxes.
     brushHandleBoxes
-      .attr("transform", (d, i) => `translate(0,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT : 0})`); // BOX-HEIGHT
+      .attr("transform", (d) => `translate(0,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT : 0})`); // BOX-HEIGHT
 
     const magicOffset = 4;
     brushHandleText
-      .attr("transform", (d, i) => `translate(2,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT / 2 + magicOffset : BRUSH_LABEL_HEIGHT / 2 + magicOffset})` )
+      .attr("transform", (d) => `translate(2,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT / 2 + magicOffset : BRUSH_LABEL_HEIGHT / 2 + magicOffset})` )
       .text((d, i)=> tickFormatter(yScale.invert(selection[i])));
   }
 
@@ -383,8 +382,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("d", lineGenerator);
 
   const xAxis = g =>
-    g // TODO: should this translate be hoisted somewhere
-      .attr("transform", `translate(0,${layout.yMin})`)
+    g
       .call(
         axisBottom(xScale)
           .ticks(layout.width / 80)
@@ -394,6 +392,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
   const xAxisGroup = svg
     .append("g")
     .attr("class", "x--axis")
+    .attr("transform", `translate(0,${layout.yMin})`)
     .call(xAxis);
 
   const drawXAxis = () => xAxisGroup.call(xAxis);
@@ -402,7 +401,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
   const brushedTwoDimensional = function () {
 
     const selection = brushSelection(this);
-    console.log("Minimap 2d Brush Triggered", selection);
+    LOG("Minimap 2d Brush Triggered");
     if (selection === null) return;
 
     const [topLeftCorner, bottomRightCorner] = selection;
@@ -432,6 +431,9 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr('class', 'twoDimensionalBrush')
     .call(twoDimensionalBrush);
 
+  // Add D3 Crosshairs
+
+
   return {
     xScale,
     yScale,
@@ -452,8 +454,8 @@ const miniMap = drawMinimap(select("#minimap"), D3_DATA, minimapLayout, mainChar
 
 // On initial page load, load the second half of data
 miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
-  [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
-  // [(minimapLayout.xMin + minimapLayout.xMax) / 2, minimapLayout.yMax], // midpoint
+  // [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
+  [(minimapLayout.xMin + minimapLayout.xMax) / 1.5, minimapLayout.yMax], // midpoint
   [minimapLayout.xMax, minimapLayout.yMin]                             // far right
 ]);
 
