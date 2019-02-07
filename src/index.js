@@ -111,7 +111,7 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
   const xAxis = g => g // TODO: should this translate be hoisted somewhere
     .attr("transform", `translate(0,${layout.yMin})`)
     .call(axisBottom(xScale)
-      .ticks(width / 80)
+      .ticks(layout.width / 80)
       .tickSizeOuter(0))
 
   const xAxisGroup = svg
@@ -336,10 +336,27 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
+  const xAxis = g =>
+    g // TODO: should this translate be hoisted somewhere
+      .attr("transform", `translate(0,${layout.yMin})`)
+      .call(
+        axisBottom(xScale)
+          .ticks(layout.width / 80)
+          .tickSizeOuter(0)
+      );
+
+  const xAxisGroup = svg
+    .append("g")
+    .attr("class", "x--axis")
+    .call(xAxis);
+
+  const drawXAxis = () => xAxisGroup.call(xAxis);
+
   // Interactions - an XY Brush
   const brushedTwoDimensional = function () {
-    console.log("Minimap 2d Brush Triggered");
+
     const selection = brushSelection(this);
+    console.log("Minimap 2d Brush Triggered", selection);
     if (selection === null) return;
 
     const [topLeftCorner, bottomRightCorner] = selection;
@@ -354,13 +371,11 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     const newYDomain = ySelection.map(yScale.invert, yScale);
     targetChart.yScale.domain(newYDomain);
 
-    // TODO: think through more what is the right place to fire "report position" messages from
     targetChart.drawLines(targetChart.lineGenerator);
-    // targetChart.lines
-    //   .attr("d", targetChart.lineGenerator); // Don't use "drawLines" because it'll fire an infinite loop of brush redrawing
 
     // Redraw appropriate axis
     targetChart.drawAxes();
+    drawXAxis(); // local labels
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])
@@ -379,7 +394,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
   }
 };
 
-const minimapMargin = { top: 0, right: 30, bottom: 0, left: 30 };
+const minimapMargin = { top: 0, right: 30, bottom: 30, left: 30 };
 const minimapLayout = getLayout({
   width: 900,
   height: 80,
@@ -432,6 +447,7 @@ const moveBrush = (chart, selection) => { // impure
   ]);
 }
 
+// Make the miniMap's brush size/move if the displayed data range in the mainChart changes.
 /**
  * @param: selection: { xSelection: [xMin, xMax], ySelection: [yMin, yMax] }
 */
