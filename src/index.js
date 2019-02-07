@@ -2,7 +2,8 @@ import './styles.scss';
 
 import { mockData } from "./mockData";
 
-import { scaleTime, scaleLinear, select, line, event, arc } from "d3";
+import { scaleTime, scaleLinear, select, line, event, } from "d3";
+import { format } from 'd3-format';
 
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
@@ -217,6 +218,7 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     reportCurrentBounds();
   };
 
+  const BRUSH_LABEL_HEIGHT = 25;
   // Based on  Custom Brush Handles: https://bl.ocks.org/mbostock/4349545
   const brushMoveY = function () {
     const selection = brushSelection(this);
@@ -224,23 +226,27 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
       brushHandles.attr("display", "none");
       return;
     }
-    // console.log(yBrushGroup.node());
-    // console.log(.getAttribute('y'));
-    // const selectionNode = yBrushGroup.select('.selection').node();
-    // yBrushGroup.select(".resize.n text")
-    //   .text(selection[0])
-    //   .attr('x', selectionNode.getAttribute('x'));
-    // yBrushGroup.select(".resize.s text").text(selection[1]);
+
+    const tickFormat = yScale.tickFormat();
+    const tickFormatter = format(tickFormat);
 
     brushHandles
       .attr("display", null)
-      .attr("transform", function (d, i) { return `translate(${layout.margin.left / 2},${selection[i]})`});
+      .attr("transform", function (d, i) { return `translate(0,${selection[i]})`});
+
+    // These magic numbers position the labels in an effort to center the text inside the boxes.
+    brushHandleBoxes
+      .attr("transform", (d, i) => `translate(0,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT : 0})`); // BOX-HEIGHT
+
+    const magicOffset = 4;
+    brushHandleText
+      .attr("transform", (d, i) => `translate(2,${d.type === 'n' ? -BRUSH_LABEL_HEIGHT / 2 + magicOffset : BRUSH_LABEL_HEIGHT / 2 + magicOffset})` )
+      .text((d, i)=> tickFormatter(yScale.invert(selection[i])));
   }
 
   // Add a brush for the X-axis
   const xBrush = brushX()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]]) // Avoid spilling area into the y axis zone
-    // Alternately: brush, start,
     .on("end", brushedX)
 
   // Y axis clip
@@ -268,39 +274,33 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     .call(yBrush)
 
   // Labels
-  // yBrushGroup.selectAll("rect")
-  //   .style("visibility", null)
-  //   .attr("x", -10)
-  //   .attr("width", 20);
-  // North and south
   const brushHandles = yBrushGroup
     .selectAll(".handle--custom")
     .data([{ type: "n" }, { type: "s" }])
     .enter()
-    .append('g')
+    .append("g")
     .attr("class", "handle--custom")
-    .append("path")
-    .attr("fill", "#666")
-    .attr("fill-opacity", 0.8)
-    .attr("stroke", "#000")
-    .attr("stroke-width", 1.5)
-    .attr(
-      "d",
-      arc()
-        .innerRadius(0)
-        .outerRadius(12)
-        .startAngle(d => (d.type === "n" ? -0.5 * Math.PI : 0.5 * Math.PI))
-        .endAngle(d => (d.type === "n" ? 0.5 * Math.PI : 1.5 * Math.PI))
-    );
+    .attr("x", layout.margin.left / 2 - 25) // Another magic number
+    .attr("display", "none");
+
+
+  const brushHandleBoxes = brushHandles
+    .append("rect")
+    .attr('height', BRUSH_LABEL_HEIGHT)
+    .attr('width', 35)
+    .attr("fill", 'rgb(94,164,203)') // light blueish
+    .attr("fill-opacity", 0.8);
+
+  const brushHandleText = brushHandles
+    .append("text")
+    .attr('fill', 'white')
+    .attr('font-size', 11);
 
   const xBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(xBrush)
 
-  // Return an object with the props we might still want to manipulate...
-  // Replace with class in the future
-  // Or replace with "redraw lines"
   return {
     xDomain,
     yDomain,
