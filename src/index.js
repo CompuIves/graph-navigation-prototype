@@ -2,8 +2,9 @@ import './styles.scss';
 
 import { mockData } from "./mockData";
 
-import { scaleTime, scaleLinear, select, line, event, } from "d3";
+import { scaleTime, scaleLinear, select, line, event, mouse } from "d3";
 import { format } from 'd3-format';
+import { timeFormat } from 'd3-time-format';
 
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
@@ -320,19 +321,45 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
 
   const verticalCrosshairLabel = svg
     .append("text")
+    .attr("font-size", 11)
     .attr("opacity", 0);
 
+  const horizontalCrosshairLabel = svg
+    .append("text")
+    .attr('font-size', 11)
+    .attr("opacity", 0);
+
+
+  const xFormatter = timeFormat("%H:%M:%S");
   const drawCrosshairs = function () {
-    console.log(event)
-    // mouse = d3.mouse(this);
-    const {offsetX, offsetY} = event;
-    verticalLine.attr("x1", offsetX).attr("x2", offsetX).attr("opacity", 1);
-    horizontalLine.attr("y1", offsetY).attr("y2", offsetY).attr("opacity", 1)
+    const [mouseX, mouseY] = mouse(this);
+
+    verticalLine
+      .attr("transform", `translate(${mouseX}, 0)`)
+      .attr("opacity", 1);
+    horizontalLine
+      .attr('transform', `translate(0, ${mouseY})`)
+      .attr('opacity', 1);
+
+    verticalCrosshairLabel
+      .attr('transform', `translate(${mouseX}, ${layout.yMax})`)
+      .attr('opacity', 1)
+      .text(xFormatter(xScale.invert(mouseX)));
+
+    const yFormatter = format(".2f"); // default to something with decimals
+
+    horizontalCrosshairLabel
+      .attr("transform", `translate(${layout.xMin}, ${mouseY})`)
+      .attr("opacity", 1)
+      .text(yFormatter(yScale.invert(mouseY)));
+    ;
   }
 
   const hideCrosshairs = function () {
     verticalLine.attr("opacity", 0);
     horizontalLine.attr("opacity", 0);
+    verticalCrosshairLabel.attr('opacity', 0);
+    horizontalCrosshairLabel.attr('opacity', 0);
   }
 
   xBrushGroup
