@@ -2,7 +2,7 @@ import './styles.scss';
 
 import { mockData } from "./mockData";
 
-import { scaleTime, scaleLinear, select, line, event } from "d3";
+import { scaleTime, scaleLinear, select, line, event, arc } from "d3";
 
 import { axisBottom, axisLeft } from 'd3-axis';
 import { extent, max } from "d3-array";
@@ -205,7 +205,6 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
 
     // No reset for now. Beware an extra event may be firing every time.
     if (selection === null) return;
-
     // Careful- this mutates xScale inplace
     // Note that this needs to be upside down
     selection.reverse(); // since y axis has max/min flipped
@@ -215,9 +214,28 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
     drawYAxis();
 
     yBrushGroup.call(yBrush.move, null); // Remove the brush after zooming https://github.com/d3/d3-brush/issues/10
-
     reportCurrentBounds();
   };
+
+  // Based on  Custom Brush Handles: https://bl.ocks.org/mbostock/4349545
+  const brushMoveY = function () {
+    const selection = brushSelection(this);
+    if (selection === null) {
+      brushHandles.attr("display", "none");
+      return;
+    }
+    // console.log(yBrushGroup.node());
+    // console.log(.getAttribute('y'));
+    // const selectionNode = yBrushGroup.select('.selection').node();
+    // yBrushGroup.select(".resize.n text")
+    //   .text(selection[0])
+    //   .attr('x', selectionNode.getAttribute('x'));
+    // yBrushGroup.select(".resize.s text").text(selection[1]);
+
+    brushHandles
+      .attr("display", null)
+      .attr("transform", function (d, i) { return `translate(${layout.margin.left / 2},${selection[i]})`});
+  }
 
   // Add a brush for the X-axis
   const xBrush = brushX()
@@ -241,11 +259,39 @@ const drawChart = (node, dataset, layout, chartSelection$) => {
   // Y axis Brush
   const yBrush = brushY()
     .extent([[0, 0], [layout.xMax, layout.yMin]])
-    .on("end", brushedY);
+    .on("end", brushedY)     // update selection at end
+    .on('brush', brushMoveY); // Fire while moving
+
   const yBrushGroup = svg
     .append("g")
     .attr("class", "brush")
     .call(yBrush)
+
+  // Labels
+  // yBrushGroup.selectAll("rect")
+  //   .style("visibility", null)
+  //   .attr("x", -10)
+  //   .attr("width", 20);
+  // North and south
+  const brushHandles = yBrushGroup
+    .selectAll(".handle--custom")
+    .data([{ type: "n" }, { type: "s" }])
+    .enter()
+    .append('g')
+    .attr("class", "handle--custom")
+    .append("path")
+    .attr("fill", "#666")
+    .attr("fill-opacity", 0.8)
+    .attr("stroke", "#000")
+    .attr("stroke-width", 1.5)
+    .attr(
+      "d",
+      arc()
+        .innerRadius(0)
+        .outerRadius(12)
+        .startAngle(d => (d.type === "n" ? -0.5 * Math.PI : 0.5 * Math.PI))
+        .endAngle(d => (d.type === "n" ? 0.5 * Math.PI : 1.5 * Math.PI))
+    );
 
   const xBrushGroup = svg
     .append("g")
