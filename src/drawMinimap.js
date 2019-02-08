@@ -1,10 +1,9 @@
-import { scaleTime, scaleLinear, select, line, event, mouse } from "d3";
-
-import { axisBottom } from "d3-axis";
 import { extent, max } from "d3-array";
-import { brush, brushX, brushY, brushSelection } from "d3-brush";
-
-import { zipWith, flatten } from "lodash";
+import { axisBottom } from "d3-axis";
+import { brush, brushSelection } from "d3-brush";
+import { scaleLinear, scaleTime } from "d3-scale";
+import { line } from "d3-shape";
+import { flatten } from "lodash";
 
 const DEBUG = false;
 const LOG = msg => DEBUG && console.log(msg);

@@ -1,14 +1,14 @@
-
-import { scaleTime, scaleLinear, select, line, event, mouse } from "d3";
+import { event, mouse } from 'd3-selection';
+import { line } from 'd3-shape';
+import { scaleLinear, scaleTime } from 'd3-scale';
+import { extent, max } from "d3-array";
+import { axisBottom, axisLeft } from "d3-axis";
+import { brushSelection, brushX, brushY } from "d3-brush";
 import { format } from "d3-format";
 import { timeFormat } from "d3-time-format";
-
-import { axisBottom, axisLeft } from "d3-axis";
-import { extent, max } from "d3-array";
-import { brush, brushX, brushY, brushSelection } from "d3-brush";
 import { zoom } from "d3-zoom";
-
 import { flatten } from "lodash";
+
 
 const DEBUG = false;
 const LOG = msg => DEBUG && console.log(msg);
