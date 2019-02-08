@@ -1,6 +1,6 @@
 import { event, mouse } from 'd3-selection';
 import { line } from 'd3-shape';
-import { scaleLinear, scaleTime } from 'd3-scale';
+import { scaleLinear, scaleTime, scaleOrdinal } from 'd3-scale';
 import { extent, max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { brushSelection, brushX, brushY } from "d3-brush";
@@ -17,6 +17,8 @@ const LOG = msg => DEBUG && console.log(msg);
 const LINE_COLOR = "#3399cc";
 const BRUSH_LABEL_HEIGHT = 25;
 const BRUSH_LABEL_COLOR = "rgb(94,164,203)";
+
+import { colorMapper} from './styles';
 
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
@@ -112,7 +114,6 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
   const lineContainer = svg
     .append("g")
     .attr("fill", "none")
-    .attr("stroke", LINE_COLOR)
     .attr("stroke-width", 1.5)
     .attr("stroke-linejoin", "round")
     .attr("stroke-linecap", "round");
@@ -121,6 +122,8 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
     .data(dataset)
     .enter()
     .append("path")
+    // .attr("stroke", LINE_COLOR)
+    .attr("stroke", (d, i) => colorMapper(i))
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 

@@ -9,6 +9,8 @@ const DEBUG = false;
 const LOG = msg => DEBUG && console.log(msg);
 
 const LINE_COLOR = "#3399cc";
+import { colorMapper } from './styles';
+
 
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
@@ -49,7 +51,6 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
   const lineContainer = svg
     .append("g")
     .attr("fill", "none")
-    .attr("stroke", LINE_COLOR)
     .attr("stroke-width", 1.5)
     .attr("stroke-linejoin", "round")
     .attr("stroke-linecap", "round");
@@ -58,6 +59,8 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
     .data(dataset)
     .enter()
     .append("path")
+    .attr("stroke", (d, i) => colorMapper(i))
+
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 

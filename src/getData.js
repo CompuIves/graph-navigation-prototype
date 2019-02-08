@@ -1,4 +1,5 @@
-import { mockData } from "./mockData";
+// import { mockData } from "./mockData";
+import { mockData } from "./mockData/manySeries";
 import { zipWith } from "lodash";
 
 
