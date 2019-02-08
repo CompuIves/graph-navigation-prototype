@@ -2,14 +2,9 @@
 $FontPathOpenSans: "../node_modules/npm-font-open-sans/fonts";
 @import '../node_modules/npm-font-open-sans/open-sans';
 
-// body {
-//   /* background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png"); */
-//   background-size: 100%;
-// }
 
-// TODO: bring in these pictures locally
 body {
-  background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png");
+  background: url("../img/dd.png");
   background-size: 100%;
   font-family: "Open Sans", sans-serif;
   font-size: 13pt;
@@ -126,8 +121,6 @@ hr {
   display: none;
 }
 
-
-
 /* Main Wrapper */
 #outer {
   width: 90%;
@@ -149,6 +142,7 @@ hr {
   }
 }
 
+// Visualization
 .lineSeries {
   clip-path: url(#clip);
 }

@@ -16,12 +16,11 @@ import { getData } from './getData';
 
 // Fixtures/constants for main chart
 const container = select("#container").node();
-const containerWidth = container.getBoundingClientRect().width - 210;
+const containerWidth = container.getBoundingClientRect().width - 210; // MAGIC NUMBER
 const height = 550;
 const width = containerWidth;
 const margin = { top: 30, right: 20, bottom: 30, left: 30 };
 
-// Load in some fixture data
 const FIXTURE_DATA = getData();
 
 // Dimensional Bounds
@@ -42,7 +41,6 @@ const getLayout = ({width, height, margin}) => {
       yMax,
   }
 }
-
 
 // PART 1 - Main Chart
 // Create a thing for mainChart to push events into
