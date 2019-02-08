@@ -13,7 +13,10 @@ import { flatten } from "lodash";
 const DEBUG = false;
 const LOG = msg => DEBUG && console.log(msg);
 
+// STYLES
 const LINE_COLOR = "#3399cc";
+const BRUSH_LABEL_HEIGHT = 25;
+const BRUSH_LABEL_COLOR = "rgb(94,164,203)";
 
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
@@ -178,7 +181,7 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
     reportCurrentBounds();
   };
 
-  const BRUSH_LABEL_HEIGHT = 25;
+
   // Based on  Custom Brush Handles: https://bl.ocks.org/mbostock/4349545
   const brushMoveY = function () {
     const selection = brushSelection(this);
@@ -257,7 +260,7 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
     .append("rect")
     .attr('height', BRUSH_LABEL_HEIGHT)
     .attr('width', 35)
-    .attr("fill", 'rgb(94,164,203)') // light blueish
+    .attr("fill", BRUSH_LABEL_COLOR) // light blueish
     .attr("fill-opacity", 0.8);
 
   const brushHandleText = brushHandles

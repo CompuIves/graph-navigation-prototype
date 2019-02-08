@@ -150,14 +150,14 @@ hr {
   cursor: hand;
 }
 
-.axis-highlight {
+.axis-highlight, .y-axis-highlight {
   fill: transparent;
-}
-.axis-highlight:hover {
-  fill: rgba(224, 239, 247, 1);
-  cursor: hand;
-}
 
+  &:hover {
+    fill: rgba(224, 239, 247, 1);
+    cursor: hand;
+  }
+}
 
 .grid line {
   stroke: lightgrey;
@@ -175,11 +175,8 @@ hr {
   margin: 0px auto;
 }
 
-.y-axis-highlight {
-  fill: transparent;
-}
-.y-axis-highlight:hover {
-  fill: #e0eff7;
+.highlight-hover {
+  fill: rgba(224, 239, 247, 1);
   cursor: hand;
 }
 

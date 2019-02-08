@@ -9,6 +9,7 @@ import { zipWith, flatten } from "lodash";
 const DEBUG = false;
 const LOG = msg => DEBUG && console.log(msg);
 
+const LINE_COLOR = "#3399cc";
 
 /**
  * @param dataset: a list of Series, where a series is a list of Points. Point has x and y props.
@@ -49,7 +50,7 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
   const lineContainer = svg
     .append("g")
     .attr("fill", "none")
-    .attr("stroke", "steelblue")
+    .attr("stroke", LINE_COLOR)
     .attr("stroke-width", 1.5)
     .attr("stroke-linejoin", "round")
     .attr("stroke-linecap", "round");
