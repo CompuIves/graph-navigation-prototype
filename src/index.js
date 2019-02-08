@@ -15,9 +15,11 @@ import { drawChart } from './drawChart';
 import { getData } from './getData';
 
 // Fixtures/constants for main chart
+const container = select("#container").node();
+const containerWidth = container.getBoundingClientRect().width - 210;
 const height = 550;
-const width = 900;
-const margin = { top: 30, right: 30, bottom: 50, left: 30 };
+const width = containerWidth;
+const margin = { top: 30, right: 20, bottom: 30, left: 30 };
 
 // Load in some fixture data
 const FIXTURE_DATA = getData();
@@ -53,7 +55,7 @@ const mainChart = drawChart(select("#app"), FIXTURE_DATA, mainChartLayout, mainC
 // Add a minimap, a tiny brushable chart for controlling another chart.
 const minimapMargin = { top: 0, right: 30, bottom: 30, left: 30 };
 const minimapLayout = getLayout({
-  width: 900,
+  width: containerWidth,
   height: 80,
   margin: minimapMargin
 });

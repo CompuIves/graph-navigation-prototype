@@ -7,7 +7,8 @@
     "d3": "^5.8.0",
     "lodash": "^4.17.11",
     "npm-font-open-sans": "^1.1.0",
-    "rxjs": "^6.4.0"
+    "rxjs": "^6.4.0",
+    "typeface-open-sans": "^0.0.54"
   },
   "scripts": {
     "dev": "parcel index.html",

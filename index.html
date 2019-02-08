@@ -1,11 +1,48 @@
 <html>
-<body>
-    <div id="outer">
-        <div id="app"> </div>
-        <div id="minimap"> </div>
-    </div>
-</body>
+    <body>
+      <div id="outer">
+        <div id="container">
+          <div id="header">
+            <div class="head">
+              Avg of system.cpu.user over * by service
+              <img src="./img/time.png" width="500px;" />
+            </div>
+          </div>
+          <div id="app"></div>
+          <div id="minimap">
+            <div class="zoomy">
+              <a href=""><img src="./img/zoomy.png" width="26px"/></a>
+            </div>
+          </div>
 
-<script src="./src/index.js"></script>
+          <div id="legend"><img src="./img/legend.png" width="85%" /></div>
 
+          <div id="sidebar"><img src="./img/sidebar.png" width="200px" /></div>
+
+          <div id="footer">
+            <hr />
+          </div>
+          <div id="dumbfoot"></div>
+          <div id="normal-foot" class="foot">
+            Showing <span class="pill">2</span> series from
+            <span class="pill">1</span> query.
+          </div>
+          <div id="graph-foot" class="foot">
+            <span class="pill">a</span> 2D zoom
+            <span class="pill">s</span> Isolate series
+          </div>
+          <div id="minimap-foot" class="foot">
+            Drag the selection boundaries to navigate your data.
+            <span class="pill">Double click</span> to reset the selection.
+          </div>
+          <div id="save-buttons" class="foot">
+            <img src="./img/save.png" width="470px" />
+          </div>
+        </div>
+        <!-- container -->
+      </div>
+      <!-- outer -->
+    </body>
+
+  <script src="./src/index.js"></script>
 </html>
