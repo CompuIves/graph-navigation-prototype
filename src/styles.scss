@@ -1,21 +1,155 @@
+
+$FontPathOpenSans: "../node_modules/npm-font-open-sans/fonts";
+@import '../node_modules/npm-font-open-sans/open-sans';
+
+// body {
+//   /* background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png"); */
+//   background-size: 100%;
+// }
+
 body {
-  /* background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png"); */
+  background: url("https://uploads.codesandbox.io/uploads/user/db7154b8-bc7d-490b-b7c2-b76ea9e2be41/u-qg-dd.png");
   background-size: 100%;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13pt;
 }
+
+a {
+  color: #3399cc;
+  text-decoration: none;
+}
+
+.pill {
+  background-color: #eeeeee;
+  padding: 2px 3px;
+  margin: 1px;
+  border-radius: 3px;
+  box-shadow: -1px 1px 0px 0px rgba(215, 215, 215, 1);
+}
+
+#container {
+  width: 100%;
+  background-color: white;
+  margin: 0 auto;
+}
+#header {
+  padding: 8px 0px;
+  font-size: 15pt;
+}
+.head {
+  width: 84%;
+  padding: 0px 16px;
+}
+.head img {
+  float: right;
+}
+
+.zoomy {
+  position: absolute;
+  left: 95px;
+  display: none;
+}
+#minimap:hover .zoomy {
+  display: block;
+}
+
+#legend {
+  width: 100%;
+  overflow: scroll;
+  height: 180px;
+}
+
+#footer {
+  padding: 20px 0px 0px;
+  font-size: 13pt;
+  position: absolute;
+  bottom: 75px;
+  width: 89%;
+}
+.foot {
+  margin: 0px 16px 4px;
+  font-size: 10pt;
+  color: #666568;
+  position: absolute;
+  bottom: 50px;
+  background-color: white;
+}
+#graph-foot {
+  display: none;
+}
+#minimap-foot {
+  display: none;
+}
+#normal-foot {
+  display: block;
+}
+#dumbfoot {
+  width: 850px;
+  background-color: white;
+  height: 26px;
+}
+#save-buttons {
+  right: 85px;
+  bottom: 40px;
+}
+
+hr {
+  border-top: 0px solid white;
+}
+
+#sidebar {
+  position: absolute;
+  top: 8px;
+  right: -50px;
+  width: 20%;
+  height: 88%;
+  border-left: 1px solid #e9e8ea;
+  padding: 8px;
+}
+
+#app:hover ~ #graph-foot {
+  display: block;
+}
+#minimap:hover ~ #minimap-foot {
+  display: block;
+}
+
+#app:hover ~ #dumbfoot {
+  display: none;
+}
+
+#app:hover ~ #normal-foot {
+  display: none;
+}
+#minimap:hover ~ #normal-foot {
+  display: none;
+}
+
+
+
 
 /* Main Wrapper */
 #outer {
   width: 900px;
   margin: 0 auto;
+  background: white;
+  height: 97%;
 }
 
 #app {
   margin-top: 20px;
 }
 
+/* minimap styles */
 .minimap {
   .twoDimensionalBrush rect.overlay {
     stroke: lightGrey;
+  }
+  .twoDimensionalBrush .selection {
+    fill: rgba(255, 230, 245, 30); // pinkish
+    stroke: #000000;
+    stroke-dasharray: 3, 3;
+    stroke-width: 2px;
   }
 }
 
