@@ -1,7 +1,5 @@
 import './styles.scss';
 
-require("typeface-open-sans");
-
 import { select } from "d3-selection";
 import {zoomIdentity } from "d3-zoom";
 
