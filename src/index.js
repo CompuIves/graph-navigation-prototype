@@ -1,11 +1,10 @@
 import './styles.scss';
 
 import { select } from "d3-selection";
-import {zoomIdentity } from "d3-zoom";
 
 // Doubleclicking
 import { fromEvent, Subject } from 'rxjs';
-import { map, buffer, debounceTime, filter} from 'rxjs/operators';
+import { map, buffer, debounceTime, filter } from 'rxjs/operators';
 
 // Local Modules
 import { drawMinimap } from './drawMinimap';
@@ -65,6 +64,8 @@ const resetLineChart = (chart) => { // Impure: has side effect
   // Modify the scales to go back to their original extent
   // This is the state that gets passed to other things
   console.log("Chart is Resetting");
+
+  // Reset the zoom - for now, don't do it
   // Date math
   const xDomainExtent = chart.xDomain[1] - chart.xDomain[0];
   const xMin = new Date(); // via https://stackoverflow.com/questions/1197928/how-to-add-30-minutes-to-a-javascript-date-object
@@ -72,15 +73,15 @@ const resetLineChart = (chart) => { // Impure: has side effect
   const newXDomain = [xMin, chart.xDomain[1]];
 
   chart.xScale.domain(newXDomain); // Reset domain to the original
+
   chart.yScale.domain(chart.yDomain);
 
-  // Reset the zoom
-  chart.xZoom.transform(chart.xAxisGroup, zoomIdentity);
+
 
   chart.drawLines(chart.lineGenerator);
   // Redraw the axes
   chart.drawAxes();
-  // Report the limits of the current X and Y
+  // Report limits of the current X and Y
   chart.reportCurrentBounds();
 }
 
@@ -121,14 +122,15 @@ const moveBrush = (chart, selection) => { // impure
 mainChartSelection$
 .subscribe({
   next: selection => {
-    moveBrush(miniMap, selection)
+    moveBrush(miniMap, selection);
   }
 });
 
 // onPageLoad:
 /* Set the initial viewing window when the page loads */
-miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
-  // [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
-  [(minimapLayout.xMin + minimapLayout.xMax) * X_DEFAULT_START_RATIO, minimapLayout.yMax], // midpoint
-  [minimapLayout.xMax, minimapLayout.yMin]                                                 // far right
-]);
+// miniMap.twoDimensionalBrush.move(miniMap.twoDimensionalBrushGroup, [
+//   // [minimapLayout.xMin, minimapLayout.yMax],     // startpoint
+//   [(minimapLayout.xMin + minimapLayout.xMax) * X_DEFAULT_START_RATIO, minimapLayout.yMax], // midpoint
+//   [minimapLayout.xMax, minimapLayout.yMin]                                                 // far right
+// ]);
+resetLineChart(mainChart);

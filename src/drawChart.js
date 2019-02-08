@@ -1,4 +1,3 @@
-import { mockData } from "./mockData";
 
 import { scaleTime, scaleLinear, select, line, event, mouse } from "d3";
 import { format } from "d3-format";
@@ -54,11 +53,31 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
   const xZoom = zoom()  // Zoom is a little speedy, but not worth re-implementing current x-axis dragging logic
     .on("zoom", onXZoom);
 
+  // Via Emily: logic that will put some background color in when users interacts with the axes
+  const xAxisHighlight = svg
+    .append("rect")
+    .attr("transform", `translate(${layout.xMin},${layout.yMin})`)
+    .attr("width", layout.xMax - layout.xMin)
+    .attr("height", "20px")
+    .attr("class", "axis-highlight");
+
+  const yAxisHighlight = svg
+    .append("rect")
+    .attr("transform", `translate(15,${layout.margin.top - 5})`)
+    .attr("width", "15px")
+    .attr("height", layout.yMin - layout.yMax + 10)
+    .attr("class", "y-axis-highlight");
+
   const xAxis = g => g // TODO: should this translate be hoisted somewhere
     .attr("transform", `translate(0,${layout.yMin})`)
     .call(axisBottom(xScale)
       .ticks(layout.width / 80)
       .tickSizeOuter(0))
+    .on("mouseover", () => {
+      xAxisHighlight.classed("highlight-hover", true);
+    }).on("mouseout", () => {
+      xAxisHighlight.classed("highlight-hover", false)
+    });
 
   const xAxisGroup = svg
     .append("g")
@@ -68,20 +87,19 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
 
   const yAxis = g => g
     .attr("transform", `translate(${layout.xMin},0)`)
-    .attr('class', 'grid')
     .call(axisLeft(yScale)
       .ticks(layout.height / 70)
       .tickSize(-layout.width + layout.margin.right * 2, 0)
       .tickSizeOuter(0)
     )
-    .call(g => g.select(".domain").remove())
+    .call(g => g.select(".domain").remove());
 
   const yAxisGroup = svg
     .append("g")
-    .attr("class", "y--axis")
+    .attr("class", "y--axis grid")
     .call(yAxis);
 
-  // DATA FUNCTION
+  // Drawing function- returns a "d" for an svg path
   const lineGenerator = line()
     .defined(d => !isNaN(d.y))
     .x(d => xScale(d.x))
@@ -126,7 +144,6 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
   const brushedX = function () { // non-arrow function so that "this" binds correctly
     LOG("Started x brush");
     const selection = brushSelection(this);
-
     // No reset for now. Beware an extra event may be firing every time.
     if (selection === null) return;
 
@@ -140,13 +157,11 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
     xBrushGroup.call(xBrush.move, null); // Remove the brush after zooming
 
     event.sourceEvent.stopPropagation(); // Don't let this trigger more things
-
     reportCurrentBounds();
   };
 
   const brushedY = function () {
     // non-arrow function so that "this" binds correctly
-    LOG("Started y brush");
     const selection = brushSelection(this);
 
     // No reset for now. Beware an extra event may be firing every time.
@@ -171,6 +186,8 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
       brushHandles.attr("display", "none");
       return;
     }
+    // Turn off the highlighter box while brush is happening
+    yAxisHighlight.classed("highlight-hover", false);
 
     const tickFormat = yScale.tickFormat();
     const tickFormatter = format(tickFormat);
@@ -215,8 +232,16 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
 
   const yBrushGroup = svg
     .append("g")
-    .attr("class", "brush")
-    .call(yBrush)
+    .attr("class", "y-brush")
+    .call(yBrush);
+
+  yBrushGroup.on("mouseover", () => {
+      // propagate highlight event down since axis blocks the rectangle
+      yAxisHighlight.classed("highlight-hover", true);
+    })
+    .on("mouseout", () => {
+      yAxisHighlight.classed("highlight-hover", false);
+    });
 
   // Labels
   const brushHandles = yBrushGroup
@@ -227,7 +252,6 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
     .attr("class", "handle--custom")
     .attr("x", layout.margin.left / 2 - 25) // Another magic number
     .attr("display", "none");
-
 
   const brushHandleBoxes = brushHandles
     .append("rect")
@@ -243,7 +267,7 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
 
   const xBrushGroup = svg
     .append("g")
-    .attr("class", "brush")
+    .attr("class", "x-brush")
     .call(xBrush)
 
   // Add lines to indicate where your cursor is currently pointing
@@ -309,7 +333,7 @@ export const drawChart = (node, dataset, layout, chartSelection$) => {
 
   xBrushGroup
     .on('mousemove', drawCrosshairs)
-    .on('mouseout', hideCrosshairs)
+    .on('mouseout', hideCrosshairs);
 
   return {
     xDomain,

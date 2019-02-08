@@ -2,7 +2,6 @@
 $FontPathOpenSans: "../node_modules/npm-font-open-sans/fonts";
 @import '../node_modules/npm-font-open-sans/open-sans';
 
-
 body {
   background: url("../img/dd.png");
   background-size: 100%;
@@ -159,10 +158,6 @@ hr {
   cursor: hand;
 }
 
-.highlight-hover {
-  fill: rgba(224, 239, 247, 1);
-  cursor: hand;
-}
 
 .grid line {
   stroke: lightgrey;

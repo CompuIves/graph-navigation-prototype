@@ -74,11 +74,8 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("transform", `translate(0,${layout.yMin})`)
     .call(xAxis);
 
-  const drawXAxis = () => xAxisGroup.call(xAxis);
-
   // Interactions - an XY Brush
   const brushedTwoDimensional = function () {
-
     const selection = brushSelection(this);
     LOG("Minimap 2d Brush Triggered");
     if (selection === null) return;
@@ -99,7 +96,6 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
 
     // Redraw appropriate axis
     targetChart.drawAxes();
-    drawXAxis(); // local labels
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])
