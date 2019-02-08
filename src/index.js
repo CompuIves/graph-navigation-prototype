@@ -11,7 +11,7 @@ import { extent, max } from "d3-array";
 import { brush, brushX, brushY, brushSelection } from "d3-brush";
 import { zoom, zoomIdentity } from "d3-zoom";
 
-import { zipWith } from "lodash";
+import { zipWith, flatten } from "lodash";
 
 // Doubleclicking
 import { fromEvent, Subject } from 'rxjs';
@@ -76,11 +76,9 @@ const doubleClick$ = mouse$.pipe(
  * @param chartSelection$: a subject that reports data about what the current boundaries of the graph view are
  */
 const drawChart = (node, dataset, layout, chartSelection$) => {
-  // TODO: make this true across all series, not just the first
   // Flat array across all series
-  const data = dataset[0];
-  const xDomain = extent(data, d => d.x);
-  const yDomain = [0, max(data, d => d.y)];
+  const xDomain = extent(flatten(dataset), d => d.x);
+  const yDomain = [0, max(flatten(dataset), d => d.y)];
 
   // Scaling functions
   let xScale = scaleTime()
@@ -402,11 +400,10 @@ const mainChart = drawChart(select("#app"), D3_DATA, mainChartLayout, mainChartS
  * @param targetChart: the chart to control
  */
 const drawMinimap = (node, dataset, layout, targetChart) => {
-  // TODO: make this true across all series, not just the first
   // Flat array across all series
-  const data = dataset[0];
-  const xDomain = extent(data, d => d.x);
-  const yDomain = [0, max(data, d => d.y)];
+  // Flat array across all series
+  const xDomain = extent(flatten(dataset), d => d.x);
+  const yDomain = [0, max(flatten(dataset), d => d.y)];
 
   // Scaling functions
   let xScale = scaleTime()
@@ -447,8 +444,7 @@ const drawMinimap = (node, dataset, layout, targetChart) => {
     .attr("class", "lineSeries")
     .attr("d", lineGenerator);
 
-  const xAxis = g =>
-    g
+  const xAxis = g => g
       .call(
         axisBottom(xScale)
           .ticks(layout.width / 80)
