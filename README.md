@@ -11,6 +11,11 @@ npm install
 npm run dev
 ```
 
+## Exploring
+
+- Change the line in `src/getData.js` to switch which dataset is being loaded in
+- In the future, we might add a dropdown menu to let you change this, but it wasn't worth it on the first pass
+
 You should be able to browse the app by visiting `localhost:1234`.
 
 ## Documentation

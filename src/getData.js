@@ -1,5 +1,11 @@
 // import { mockData } from "./mockData";
-import { mockData } from "./mockData/waveSeries";
+
+// To change fixture data, just keep one of these lines
+// import { mockData } from "./mockData/twoSeries"; // most basic example
+// import { mockData } from "./mockData/tenSeries"; // busiest chart
+// import { mockData } from "./mockData/waveSeries"; // Let user drill into something with a visually interesting shape
+import { mockData } from "./mockData/bumpSeries";    // Chart with some unusual inflection points worth inspecting
+
 import { zipWith } from "lodash";
 
 const DATA = mockData.map(series => {
