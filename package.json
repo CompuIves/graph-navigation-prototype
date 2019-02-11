@@ -7,11 +7,10 @@
     "d3": "^5.8.0",
     "lodash": "^4.17.11",
     "npm-font-open-sans": "^1.1.0",
-    "rxjs": "^6.4.0",
-    "typeface-open-sans": "^0.0.54"
+    "rxjs": "^6.4.0"
   },
   "scripts": {
-    "dev": "parcel index.html",
+    "dev": "parcel index.html -p 3000",
     "build": "parcel build index.html",
     "start": "npm run dev"
   },
