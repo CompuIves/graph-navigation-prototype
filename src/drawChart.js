@@ -1,6 +1,6 @@
 import { event, mouse } from 'd3-selection';
 import { line } from 'd3-shape';
-import { scaleLinear, scaleTime, scaleOrdinal } from 'd3-scale';
+import { scaleLinear, scaleTime } from 'd3-scale';
 import { extent, max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { brushSelection, brushX, brushY } from "d3-brush";

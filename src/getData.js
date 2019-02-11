@@ -1,7 +1,6 @@
 // import { mockData } from "./mockData";
-import { mockData } from "./mockData/manySeries";
+import { mockData } from "./mockData/waveSeries";
 import { zipWith } from "lodash";
-
 
 const DATA = mockData.map(series => {
   return {
