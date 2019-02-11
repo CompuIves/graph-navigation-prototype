@@ -102,7 +102,7 @@ export const drawMinimap = (node, dataset, layout, targetChart) => {
   };
   const twoDimensionalBrush = brush()
     .extent([[layout.xMin, layout.yMax], [layout.xMax, layout.yMin]])
-    .on('end', brushedTwoDimensional);
+    .on('brush', brushedTwoDimensional);
 
   const twoDimensionalBrushGroup = svg
     .append('g')
